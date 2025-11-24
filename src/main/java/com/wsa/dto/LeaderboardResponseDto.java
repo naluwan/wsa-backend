@@ -2,8 +2,9 @@ package com.wsa.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 
@@ -11,7 +12,8 @@ import java.util.List;
  * 排行榜回應資料傳輸物件
  * 包含排行榜列表、當前使用者排名資訊和分頁資訊
  */
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

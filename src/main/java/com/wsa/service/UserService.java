@@ -5,6 +5,7 @@ import com.wsa.entity.User;
 import com.wsa.repository.UserRepository;
 import com.wsa.repository.UserUnitProgressRepository;
 import com.wsa.repository.UserCourseRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import java.util.UUID;
  * 處理使用者相關的業務邏輯，包含建立新使用者與更新現有使用者資料
  */
 @Service
+@Slf4j
 public class UserService {
 
     @Autowired
@@ -98,18 +100,18 @@ public class UserService {
         // 步驟 2：清除所有課程觀看進度
         // 刪除該使用者的所有 user_unit_progress 記錄
         userUnitProgressRepository.deleteByUserId(userId);
-        System.out.println("[UserService] 已清除使用者 " + userId + " 的所有課程觀看進度");
+        log.info("[UserService] 已清除使用者 {} 的所有課程觀看進度", userId);
 
         // 步驟 3：清除所有課程訂單
         // 刪除該使用者的所有 user_courses 記錄
         userCourseRepository.deleteByUserId(userId);
-        System.out.println("[UserService] 已清除使用者 " + userId + " 的所有課程訂單");
+        log.info("[UserService] 已清除使用者 {} 的所有課程訂單", userId);
 
         // 步驟 4：重置經驗值和等級
         user.setTotalXp(0);
         user.setWeeklyXp(0);
         user.setLevel(1);
-        System.out.println("[UserService] 已重置使用者 " + userId + " 的經驗值和等級");
+        log.info("[UserService] 已重置使用者 {} 的經驗值和等級", userId);
 
         // 步驟 5：保存更新後的使用者資料
         return userRepository.save(user);

@@ -2,7 +2,8 @@ package com.wsa.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 import java.util.UUID;
@@ -11,7 +12,8 @@ import java.util.UUID;
  * 單元詳細資料傳輸物件
  * 用於單元頁面顯示完整的單元資訊
  */
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
