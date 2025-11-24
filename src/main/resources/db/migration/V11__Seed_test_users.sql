@@ -127,7 +127,7 @@ VALUES
   ('00000062-0000-0000-0000-000000000062'::uuid, 'seed_test_098', 'seed', '測試用戶98', 'seed_user_98@example.com', 'https://api.dicebear.com/7.x/avataaars/svg?seed=98', 1, 5, 5),
   ('00000063-0000-0000-0000-000000000063'::uuid, 'seed_test_099', 'seed', '測試用戶99', 'seed_user_99@example.com', 'https://api.dicebear.com/7.x/avataaars/svg?seed=99', 1, 0, 0),
   ('00000064-0000-0000-0000-000000000064'::uuid, 'seed_test_100', 'seed', '測試用戶100', 'seed_user_100@example.com', 'https://api.dicebear.com/7.x/avataaars/svg?seed=100', 1, 0, 0)
-ON CONFLICT (external_id) DO NOTHING;
+ON CONFLICT (provider, external_id) DO NOTHING;
 
 -- ============================================================
 -- 驗證：檢查插入結果
