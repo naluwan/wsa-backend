@@ -15,8 +15,12 @@ import java.util.Random;
 /**
  * 使用者種子資料生成器
  * 在應用程式啟動時檢查並生成 100 個測試使用者
+ *
+ * ⚠️ 已停用：改用 Flyway Migration V11__Seed_test_users.sql
+ * 此 Seeder 使用動態生成的 external_id，不符合 idempotent 原則
+ * 新做法使用固定 UUID，確保可重複執行且不會產生重複資料
  */
-@Component
+// @Component  // ← 已停用，改用 Flyway V11
 @RequiredArgsConstructor
 @Slf4j
 public class UserSeeder implements CommandLineRunner {
