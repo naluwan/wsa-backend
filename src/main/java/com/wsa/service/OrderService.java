@@ -80,7 +80,7 @@ public class OrderService {
                 .orderNo(orderNo)
                 .userId(userId)
                 .courseId(courseId)
-                .amount(course.getPrice())
+                .amount(course.getPriceTwd())
                 .status(Order.Status.PENDING)
                 .payDeadline(payDeadline)
                 .build();
