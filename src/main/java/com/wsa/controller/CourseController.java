@@ -3,8 +3,10 @@ package com.wsa.controller;
 import com.wsa.dto.CourseDetailResponseDto;
 import com.wsa.dto.CourseDto;
 import com.wsa.dto.CoursePurchaseResponseDto;
+import com.wsa.dto.OrderResponseDto;
 import com.wsa.entity.UserCourse;
 import com.wsa.service.CourseService;
+import com.wsa.service.OrderService;
 import com.wsa.service.UserCourseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,7 @@ public class CourseController {
 
     private final CourseService courseService;
     private final UserCourseService userCourseService;
+    private final OrderService orderService;
 
     /**
      * 取得所有課程列表（公開端點，未登入也可存取）
@@ -106,6 +109,23 @@ public class CourseController {
         } catch (Exception e) {
             // 其他錯誤
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * R1.5: 4.4 取得某課程的訂單紀錄
+     * GET /api/courses/{courseId}/orders
+     *
+     * @param courseId 課程 ID
+     * @return 訂單列表
+     */
+    @GetMapping("/{courseId}/orders")
+    public ResponseEntity<List<OrderResponseDto>> getCourseOrders(@PathVariable UUID courseId) {
+        try {
+            List<OrderResponseDto> orders = orderService.getCourseOrders(courseId);
+            return ResponseEntity.ok(orders);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
         }
     }
 
