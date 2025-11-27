@@ -3,12 +3,12 @@ package com.wsa.service;
 import com.wsa.dto.CreateOrderResponse;
 import com.wsa.dto.OrderResponseDto;
 import com.wsa.dto.PayOrderResponse;
-import com.wsa.entity.Course;
+import com.wsa.entity.Journey;
 import com.wsa.entity.Order;
-import com.wsa.entity.UserCourse;
-import com.wsa.repository.CourseRepository;
+import com.wsa.entity.UserJourney;
+import com.wsa.repository.JourneyRepository;
 import com.wsa.repository.OrderRepository;
-import com.wsa.repository.UserCourseRepository;
+import com.wsa.repository.UserJourneyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,8 +22,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * R1.5: 訂單服務
- * 處理訂單建立、付款、查詢等業務邏輯
+ * 訂單服務（Fast R6 更新：100% Journey Native）
+ *
+ * Fast R6 變更：
+ *   - 移除所有 Course/UserCourse 依賴
+ *   - 改用 Journey 取得價格和標題
+ *   - payOrder() 僅寫入 user_journeys（移除雙寫）
+ *   - 所有訂單必須有 journey_id
  */
 @Slf4j
 @Service
@@ -31,8 +36,8 @@ import java.util.stream.Collectors;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final CourseRepository courseRepository;
-    private final UserCourseRepository userCourseRepository;
+    private final JourneyRepository journeyRepository;
+    private final UserJourneyRepository userJourneyRepository;
 
     private static final DateTimeFormatter ORDER_NO_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final Random RANDOM = new Random();
@@ -49,22 +54,27 @@ public class OrderService {
     }
 
     /**
-     * 建立訂單
+     * 透過 Journey slug 建立訂單（Fast R6 更新：100% Journey Native）
+     *
+     * Fast R6 變更：
+     *   - 移除 Course 依賴，改用 Journey
+     *   - 價格從 Journey.priceTwd 取得
+     *   - 檢查購買狀態改查 user_journeys
      *
      * @param userId 使用者 ID
-     * @param courseId 課程 ID
+     * @param slug Journey 的 slug（例如：software-design-pattern）
      * @return 訂單編號
      */
     @Transactional
-    public CreateOrderResponse createOrder(UUID userId, UUID courseId) {
-        log.info("[OrderService] 建立訂單: userId={}, courseId={}", userId, courseId);
+    public CreateOrderResponse createOrderBySlug(UUID userId, String slug) {
+        log.info("[OrderService] Fast R6 建立訂單: userId={}, slug={}", userId, slug);
 
-        // 查詢課程
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("課程不存在"));
+        // 取得 Journey
+        Journey journey = journeyRepository.findBySlug(slug)
+                .orElseThrow(() -> new RuntimeException("Journey 不存在: " + slug));
 
         // 檢查是否已購買
-        boolean alreadyPurchased = userCourseRepository.findByUserIdAndCourseId(userId, courseId).isPresent();
+        boolean alreadyPurchased = userJourneyRepository.existsByUserIdAndJourneyId(userId, journey.getId());
         if (alreadyPurchased) {
             throw new RuntimeException("您已購買此課程");
         }
@@ -75,19 +85,21 @@ public class OrderService {
         // 計算付款期限（3天後）
         LocalDateTime payDeadline = LocalDateTime.now().plusDays(3);
 
-        // 建立訂單
+        // Fast R6: 建立訂單（僅使用 Journey）
         Order order = Order.builder()
                 .orderNo(orderNo)
                 .userId(userId)
-                .courseId(courseId)
-                .amount(course.getPriceTwd())
+                .courseId(null)  // Fast R6: 不再使用 courseId
+                .journeyId(journey.getId())
+                .amount(journey.getPriceTwd())  // Fast R6: 從 Journey 取得價格
                 .status(Order.Status.PENDING)
                 .payDeadline(payDeadline)
                 .build();
 
         orderRepository.save(order);
 
-        log.info("[OrderService] 訂單建立成功: orderNo={}", orderNo);
+        log.info("[OrderService] Fast R6 訂單建立成功: orderNo={}, journeyId={}, amount={}",
+                orderNo, journey.getId(), journey.getPriceTwd());
 
         return CreateOrderResponse.builder()
                 .orderNo(orderNo)
@@ -95,13 +107,13 @@ public class OrderService {
     }
 
     /**
-     * 取得單一訂單
+     * 取得單一訂單（Fast R6 更新：使用 Journey）
      *
      * @param orderNo 訂單編號
      * @return 訂單資料
      */
     public OrderResponseDto getOrder(String orderNo) {
-        log.info("[OrderService] 查詢訂單: orderNo={}", orderNo);
+        log.info("[OrderService] Fast R6 查詢訂單: orderNo={}", orderNo);
 
         Order order = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new RuntimeException("訂單不存在"));
@@ -112,14 +124,20 @@ public class OrderService {
             cancelExpiredOrder(order);
         }
 
-        Course course = courseRepository.findById(order.getCourseId())
-                .orElseThrow(() -> new RuntimeException("課程不存在"));
+        // Fast R6: 從 Journey 取得標題
+        Journey journey = journeyRepository.findById(order.getJourneyId())
+                .orElseThrow(() -> new RuntimeException("Journey 不存在"));
 
-        return OrderResponseDto.from(order, course.getTitle());
+        return OrderResponseDto.from(order, journey.getName());
     }
 
     /**
-     * 訂單付款（模擬）
+     * 訂單付款（Fast R6 更新：僅寫入 user_journeys）
+     *
+     * Fast R6 變更：
+     *   - 移除 user_courses 雙寫邏輯
+     *   - 僅寫入 user_journeys
+     *   - 所有訂單必須有 journey_id
      *
      * @param orderNo 訂單編號
      * @param userId 使用者 ID
@@ -127,7 +145,7 @@ public class OrderService {
      */
     @Transactional
     public PayOrderResponse payOrder(String orderNo, UUID userId) {
-        log.info("[OrderService] 訂單付款: orderNo={}, userId={}", orderNo, userId);
+        log.info("[OrderService] Fast R6 訂單付款: orderNo={}, userId={}", orderNo, userId);
 
         Order order = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new RuntimeException("訂單不存在"));
@@ -152,20 +170,28 @@ public class OrderService {
             throw new RuntimeException("訂單已過期");
         }
 
+        // Fast R6: 驗證訂單必須有 journey_id
+        if (order.getJourneyId() == null) {
+            log.error("[OrderService] Fast R6 Error: 訂單缺少 journey_id，orderNo={}", orderNo);
+            throw new RuntimeException("訂單資料不完整，無法完成付款");
+        }
+
         // 模擬付款成功
         order.setStatus(Order.Status.PAID);
         order.setPaidAt(LocalDateTime.now());
         order.setMemo(null); // 清空備註
         orderRepository.save(order);
 
-        // 建立使用者課程關聯（購買成功）
-        UserCourse userCourse = UserCourse.builder()
+        // Fast R6: 僅寫入 user_journeys（Journey Native）
+        UserJourney userJourney = UserJourney.builder()
                 .userId(order.getUserId())
-                .courseId(order.getCourseId())
+                .journeyId(order.getJourneyId())
+                .purchasedAt(order.getPaidAt())
                 .build();
-        userCourseRepository.save(userCourse);
+        userJourneyRepository.save(userJourney);
 
-        log.info("[OrderService] 訂單付款成功: orderNo={}", orderNo);
+        log.info("[OrderService] Fast R6 訂單付款成功: orderNo={}, journeyId={}",
+                orderNo, order.getJourneyId());
 
         return PayOrderResponse.builder()
                 .status(Order.Status.PAID)
@@ -174,18 +200,18 @@ public class OrderService {
     }
 
     /**
-     * 查詢某課程的所有訂單
+     * 查詢某 Journey 的所有訂單（Fast R6 更新：改用 Journey）
      *
-     * @param courseId 課程 ID
+     * @param journeyId Journey ID
      * @return 訂單列表
      */
-    public List<OrderResponseDto> getCourseOrders(UUID courseId) {
-        log.info("[OrderService] 查詢課程訂單: courseId={}", courseId);
+    public List<OrderResponseDto> getJourneyOrders(UUID journeyId) {
+        log.info("[OrderService] Fast R6 查詢 Journey 訂單: journeyId={}", journeyId);
 
-        List<Order> orders = orderRepository.findByCourseIdOrderByCreatedAtDesc(courseId);
+        List<Order> orders = orderRepository.findByJourneyIdOrderByCreatedAtDesc(journeyId);
 
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("課程不存在"));
+        Journey journey = journeyRepository.findById(journeyId)
+                .orElseThrow(() -> new RuntimeException("Journey 不存在"));
 
         return orders.stream()
                 .map(order -> {
@@ -194,19 +220,19 @@ public class OrderService {
                             LocalDateTime.now().isAfter(order.getPayDeadline())) {
                         cancelExpiredOrder(order);
                     }
-                    return OrderResponseDto.from(order, course.getTitle());
+                    return OrderResponseDto.from(order, journey.getName());
                 })
                 .collect(Collectors.toList());
     }
 
     /**
-     * 查詢使用者的所有訂單
+     * 查詢使用者的所有訂單（Fast R6 更新：使用 Journey）
      *
      * @param userId 使用者 ID
      * @return 訂單列表
      */
     public List<OrderResponseDto> getUserOrders(UUID userId) {
-        log.info("[OrderService] 查詢使用者訂單: userId={}", userId);
+        log.info("[OrderService] Fast R6 查詢使用者訂單: userId={}", userId);
 
         List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
@@ -218,22 +244,23 @@ public class OrderService {
                         cancelExpiredOrder(order);
                     }
 
-                    Course course = courseRepository.findById(order.getCourseId())
-                            .orElseThrow(() -> new RuntimeException("課程不存在"));
+                    // Fast R6: 從 Journey 取得資訊
+                    Journey journey = journeyRepository.findById(order.getJourneyId())
+                            .orElseThrow(() -> new RuntimeException("Journey 不存在"));
 
-                    return OrderResponseDto.from(order, course.getTitle());
+                    return OrderResponseDto.from(order, journey.getName(), journey.getSlug());
                 })
                 .collect(Collectors.toList());
     }
 
     /**
-     * 查詢使用者的未完成訂單（pending 且尚未過期）
+     * 查詢使用者的未完成訂單（Fast R6 更新：使用 Journey）
      *
      * @param userId 使用者 ID
      * @return 訂單列表
      */
     public List<OrderResponseDto> getPendingOrders(UUID userId) {
-        log.info("[OrderService] 查詢未完成訂單: userId={}", userId);
+        log.info("[OrderService] Fast R6 查詢未完成訂單: userId={}", userId);
 
         List<Order> orders = orderRepository.findPendingOrdersByUserId(
                 userId,
@@ -243,9 +270,10 @@ public class OrderService {
 
         return orders.stream()
                 .map(order -> {
-                    Course course = courseRepository.findById(order.getCourseId())
-                            .orElseThrow(() -> new RuntimeException("課程不存在"));
-                    return OrderResponseDto.from(order, course.getTitle());
+                    // Fast R6: 從 Journey 取得標題
+                    Journey journey = journeyRepository.findById(order.getJourneyId())
+                            .orElseThrow(() -> new RuntimeException("Journey 不存在"));
+                    return OrderResponseDto.from(order, journey.getName());
                 })
                 .collect(Collectors.toList());
     }

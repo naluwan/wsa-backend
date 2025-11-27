@@ -30,7 +30,7 @@ public class OrderController {
      * 4.1 建立訂單
      * POST /api/orders
      *
-     * @param request 建立訂單請求（包含 courseId）
+     * @param request 建立訂單請求（包含 courseId 或 slug）
      * @param authentication Spring Security 認證物件
      * @return 訂單編號
      */
@@ -49,10 +49,17 @@ public class OrderController {
 
         // 從 Authentication 中取得使用者 ID
         UUID userId = (UUID) authentication.getPrincipal();
-        log.info("[OrderController] 使用者 ID: {}, 課程 ID: {}", userId, request.getCourseId());
+        log.info("[OrderController] 使用者 ID: {}, 課程 ID: {}, slug: {}",
+                userId, request.getCourseId(), request.getSlug());
 
         try {
-            CreateOrderResponse response = orderService.createOrder(userId, request.getCourseId());
+            // Fast R6: 僅支援使用 slug 建立訂單
+            if (request.getSlug() == null || request.getSlug().isEmpty()) {
+                log.warn("[OrderController] Fast R6: 缺少 slug，不再支援 courseId");
+                return ResponseEntity.badRequest().build();
+            }
+
+            CreateOrderResponse response = orderService.createOrderBySlug(userId, request.getSlug());
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("[OrderController] 建立訂單失敗: {}", e.getMessage());

@@ -3,8 +3,9 @@ package com.wsa.service;
 import com.wsa.dto.OAuthLoginRequest;
 import com.wsa.entity.User;
 import com.wsa.repository.UserRepository;
-import com.wsa.repository.UserUnitProgressRepository;
-import com.wsa.repository.UserCourseRepository;
+import com.wsa.repository.UserLessonProgressRepository;
+import com.wsa.repository.UserJourneyRepository;
+import com.wsa.repository.OrderRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,8 +15,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * 使用者服務類別
- * 處理使用者相關的業務邏輯，包含建立新使用者與更新現有使用者資料
+ * 使用者服務類別（Fast R6 更新：100% Journey Native）
+ *
+ * Fast R6 變更：
+ *   - 移除 UserUnitProgressRepository 依賴
+ *   - 移除 UserCourseRepository 依賴
+ *   - resetUserData() 僅清理 Journey 相關資料
  */
 @Service
 @Slf4j
@@ -25,10 +30,13 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
-    private UserUnitProgressRepository userUnitProgressRepository;
+    private UserLessonProgressRepository userLessonProgressRepository;
 
     @Autowired
-    private UserCourseRepository userCourseRepository;
+    private UserJourneyRepository userJourneyRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
 
     /**
      * 建立新使用者或更新現有使用者資料
@@ -72,12 +80,18 @@ public class UserService {
     }
 
     /**
-     * 重置使用者的所有學習資料
+     * 重置使用者的所有學習資料（Fast R6 更新：僅清理 Journey 資料）
+     *
+     * Fast R6 變更：
+     *   - 移除 user_unit_progress 清理（舊架構資料不再維護）
+     *   - 移除 user_courses 清理（改為清理 user_journeys）
+     *   - 僅清理 Journey 相關資料
      *
      * 功能：
-     *   1. 清除所有課程觀看進度（user_unit_progress）
-     *   2. 重置經驗值（totalXp = 0, weeklyXp = 0, level = 1）
-     *   3. 清除所有課程訂單（user_courses）
+     *   1. 清除所有課程觀看進度（user_lesson_progress）
+     *   2. 清除所有 Journey 擁有記錄（user_journeys）
+     *   3. 刪除所有訂單記錄（orders）
+     *   4. 重置經驗值（totalXp = 0, weeklyXp = 0, level = 1）
      *
      * 使用場景：
      *   - 開發測試時重置資料
@@ -97,23 +111,27 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("找不到使用者：" + userId));
 
-        // 步驟 2：清除所有課程觀看進度
-        // 刪除該使用者的所有 user_unit_progress 記錄
-        userUnitProgressRepository.deleteByUserId(userId);
-        log.info("[UserService] 已清除使用者 {} 的所有課程觀看進度", userId);
+        log.info("[UserService] Fast R6: 開始重置使用者 {} 的資料（僅 Journey 世界）", userId);
 
-        // 步驟 3：清除所有課程訂單
-        // 刪除該使用者的所有 user_courses 記錄
-        userCourseRepository.deleteByUserId(userId);
-        log.info("[UserService] 已清除使用者 {} 的所有課程訂單", userId);
+        // 步驟 2：清除所有課程觀看進度（user_lesson_progress）
+        userLessonProgressRepository.deleteByUserId(userId);
+        log.info("[UserService] Fast R6: 已清除使用者 {} 的課程進度 (user_lesson_progress)", userId);
 
-        // 步驟 4：重置經驗值和等級
+        // 步驟 3：清除所有 Journey 擁有記錄（user_journeys）
+        userJourneyRepository.deleteByUserId(userId);
+        log.info("[UserService] Fast R6: 已清除使用者 {} 的 Journey 擁有記錄 (user_journeys)", userId);
+
+        // 步驟 4：刪除所有訂單記錄（orders）
+        orderRepository.deleteByUserId(userId);
+        log.info("[UserService] Fast R6: 已刪除使用者 {} 的所有訂單記錄", userId);
+
+        // 步驟 5：重置經驗值和等級
         user.setTotalXp(0);
         user.setWeeklyXp(0);
         user.setLevel(1);
-        log.info("[UserService] 已重置使用者 {} 的經驗值和等級", userId);
+        log.info("[UserService] Fast R6: 已重置使用者 {} 的經驗值和等級", userId);
 
-        // 步驟 5：保存更新後的使用者資料
+        // 步驟 6：保存更新後的使用者資料
         return userRepository.save(user);
     }
 }

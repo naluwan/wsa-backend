@@ -11,21 +11,23 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * 使用者單元進度實體類別
+ * 使用者課程進度實體類別
+ * 用於追蹤 Journey/Lesson 架構下的使用者學習進度
+ *
  * 用途：
- *   1. 記錄使用者觀看單元的進度（最後觀看位置、最後觀看時間）
- *   2. 記錄使用者完成單元的狀態（完成時間）
+ *   1. 記錄使用者觀看課程的進度（最後觀看位置、最後觀看時間）
+ *   2. 記錄使用者完成課程的狀態（完成時間）
  *
  * 重要：
  *   - 進度更新（觀看中）時，completedAt 為 null
- *   - 完成單元時，completedAt 才設為當前時間
- *   - 每個使用者對每個單元只能有一筆記錄（UNIQUE 約束）
+ *   - 完成課程時，completedAt 才設為當前時間
+ *   - 每個使用者對每個課程只能有一筆記錄（UNIQUE 約束）
  */
 @Entity
 @Table(
-    name = "user_unit_progress",
+    name = "user_lesson_progress",
     uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"user_id", "unit_id"})
+        @UniqueConstraint(columnNames = {"user_id", "lesson_id"})
     }
 )
 @Getter
@@ -33,7 +35,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserUnitProgress {
+public class UserLessonProgress {
 
     /** 進度記錄唯一識別碼（UUID 格式） */
     @Id
@@ -44,9 +46,9 @@ public class UserUnitProgress {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    /** 單元 UUID */
-    @Column(name = "unit_id", nullable = false)
-    private UUID unitId;
+    /** 課程 UUID */
+    @Column(name = "lesson_id", nullable = false)
+    private UUID lessonId;
 
     /**
      * 使用者最後觀看到的影片秒數位置
@@ -57,7 +59,7 @@ public class UserUnitProgress {
     private Integer lastPositionSeconds;
 
     /**
-     * 使用者最後一次觀看此單元的時間
+     * 使用者最後一次觀看此課程的時間
      * 用途：
      *   1. 追蹤使用者學習行為
      *   2. 分析使用者活躍度
@@ -69,11 +71,9 @@ public class UserUnitProgress {
     /**
      * 完成時間
      * 重要：
-     *   - 若為 null，表示單元尚未完成（可能正在觀看中）
-     *   - 若不為 null，表示單元已完成（此時間用於避免重複獲得 XP）
-     *   - 完成單元時，應手動設為 LocalDateTime.now()
-     *
-     * 注意：移除了 @CreationTimestamp 註解，因為進度更新時不應自動設值
+     *   - 若為 null，表示課程尚未完成（可能正在觀看中）
+     *   - 若不為 null，表示課程已完成（此時間用於避免重複獲得 XP）
+     *   - 完成課程時，應手動設為 LocalDateTime.now()
      */
     @Column(name = "completed_at")
     private LocalDateTime completedAt;

@@ -38,9 +38,16 @@ public class Order {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    /** 購買課程 ID */
-    @Column(name = "course_id", nullable = false)
+    /**
+     * 購買課程 ID（Fast R6: 已棄用，改用 journey_id）
+     * 保留此欄位以相容舊資料，新訂單此欄位為 null
+     */
+    @Column(name = "course_id", nullable = true)
     private UUID courseId;
+
+    /** Journey ID（R4 新增：對應購買的 Journey，舊訂單為 null）*/
+    @Column(name = "journey_id")
+    private UUID journeyId;
 
     /** 訂單金額（單位：元） */
     @Column(name = "amount", nullable = false)

@@ -13,38 +13,30 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * 使用者課程擁有權實體類別
- * 記錄使用者購買/擁有的課程，用於實現課程存取權限控制
+ * 技能實體類別
+ * 儲存課程相關的技能標籤資訊
  */
 @Entity
-@Table(
-    name = "user_courses",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "course_id"})
-)
+@Table(name = "skills")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserCourse {
+public class Skill {
 
-    /** 擁有權記錄唯一識別碼（UUID 格式） */
+    /** 技能唯一識別碼（UUID 格式） */
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    /** 使用者 ID（外鍵關聯 users 表） */
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    /** 外部 ID（對應 JSON 中的 id） */
+    @Column(name = "external_id", nullable = false, unique = true)
+    private Integer externalId;
 
-    /** 課程 ID（外鍵關聯 courses 表） */
-    @Column(name = "course_id", nullable = false)
-    private UUID courseId;
-
-    /** 購買時間 */
-    @Column(name = "purchased_at", nullable = false)
-    @Builder.Default
-    private LocalDateTime purchasedAt = LocalDateTime.now();
+    /** 技能名稱 */
+    @Column(name = "name", nullable = false, length = 100)
+    private String name;
 
     /** 建立時間（自動產生） */
     @CreationTimestamp

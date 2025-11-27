@@ -42,9 +42,21 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      *
      * @param courseId 課程 ID
      * @return 訂單列表
+     * @deprecated Fast R6: 改用 findByJourneyIdOrderByCreatedAtDesc
      */
+    @Deprecated
     @Query("SELECT o FROM Order o WHERE o.courseId = :courseId ORDER BY o.createdAt DESC")
     List<Order> findByCourseIdOrderByCreatedAtDesc(@Param("courseId") UUID courseId);
+
+    /**
+     * 查詢特定 Journey 的所有訂單（Fast R6 新增）
+     * 按建立時間降序排列
+     *
+     * @param journeyId Journey ID
+     * @return 訂單列表
+     */
+    @Query("SELECT o FROM Order o WHERE o.journeyId = :journeyId ORDER BY o.createdAt DESC")
+    List<Order> findByJourneyIdOrderByCreatedAtDesc(@Param("journeyId") UUID journeyId);
 
     /**
      * 查詢使用者特定課程的所有訂單
@@ -83,4 +95,12 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
         @Param("status") String status,
         @Param("now") LocalDateTime now
     );
+
+    /**
+     * 刪除使用者的所有訂單
+     * 用於重置使用者資料
+     *
+     * @param userId 使用者 ID
+     */
+    void deleteByUserId(UUID userId);
 }
