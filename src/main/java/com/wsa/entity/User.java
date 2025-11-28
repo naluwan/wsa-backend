@@ -9,6 +9,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -64,6 +65,30 @@ public class User {
     @Column(name = "weekly_xp", nullable = false)
     @Builder.Default
     private Integer weeklyXp = 0;
+
+    /** 使用者暱稱 */
+    @Column(name = "nickname")
+    private String nickname;
+
+    /** 使用者心理性別 */
+    @Column(name = "gender")
+    private String gender;
+
+    /** 使用者職業 */
+    @Column(name = "occupation")
+    private String occupation;
+
+    /** 使用者生日 */
+    @Column(name = "birthday")
+    private LocalDate birthday;
+
+    /** 使用者所在地區 */
+    @Column(name = "location")
+    private String location;
+
+    /** 使用者 GitHub 連結 */
+    @Column(name = "github_url")
+    private String githubUrl;
 
     /** 建立時間（自動產生） */
     @CreationTimestamp

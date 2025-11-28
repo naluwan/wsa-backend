@@ -1,5 +1,6 @@
 package com.wsa.controller;
 
+import com.wsa.dto.UpdateUserProfileRequest;
 import com.wsa.dto.UserDto;
 import com.wsa.entity.User;
 import com.wsa.repository.UserRepository;
@@ -99,5 +100,49 @@ public class UserController {
 
         // 步驟 4：回傳重置後的使用者資料
         return ResponseEntity.ok(UserDto.from(resetUser));
+    }
+
+    /**
+     * 更新當前登入使用者的個人資料
+     *
+     * 功能說明：
+     *   - 更新使用者的個人資料
+     *   - 包含：顯示名稱、暱稱、性別、職業、生日、地區、GitHub 連結、頭像
+     *   - 僅更新有提供的欄位（null 值不更新）
+     *
+     * 使用場景：
+     *   - 使用者編輯個人資料頁面
+     *
+     * 注意事項：
+     *   - 需要使用者登入（從 Authentication 取得使用者 ID）
+     *   - Email 欄位不可修改
+     *
+     * @param authentication Spring Security 認證物件（由 JwtFilter 設定）
+     * @param request 更新個人資料請求
+     * @return UserDto 更新後的使用者資料
+     */
+    @PatchMapping("/me/profile")
+    public ResponseEntity<UserDto> updateProfile(
+            Authentication authentication,
+            @RequestBody UpdateUserProfileRequest request) {
+        System.out.println("[UserController] /api/user/me/profile 被調用");
+        System.out.println("[UserController] Authentication: " + authentication);
+
+        // 步驟 1：檢查是否已認證
+        if (authentication == null || authentication.getPrincipal() == null) {
+            System.out.println("[UserController] 未認證，回傳 401");
+            return ResponseEntity.status(401).build();
+        }
+
+        // 步驟 2：從 Authentication 中取得使用者 ID
+        UUID userId = (UUID) authentication.getPrincipal();
+        System.out.println("[UserController] 準備更新使用者 ID: " + userId + " 的個人資料");
+
+        // 步驟 3：呼叫 UserService 進行更新
+        User updatedUser = userService.updateProfile(userId, request);
+        System.out.println("[UserController] 使用者 " + userId + " 個人資料更新完成");
+
+        // 步驟 4：回傳更新後的使用者資料
+        return ResponseEntity.ok(UserDto.from(updatedUser));
     }
 }

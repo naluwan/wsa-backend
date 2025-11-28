@@ -1,6 +1,7 @@
 package com.wsa.service;
 
 import com.wsa.dto.OAuthLoginRequest;
+import com.wsa.dto.UpdateUserProfileRequest;
 import com.wsa.entity.User;
 import com.wsa.repository.UserRepository;
 import com.wsa.repository.UserLessonProgressRepository;
@@ -132,6 +133,58 @@ public class UserService {
         log.info("[UserService] Fast R6: 已重置使用者 {} 的經驗值和等級", userId);
 
         // 步驟 6：保存更新後的使用者資料
+        return userRepository.save(user);
+    }
+
+    /**
+     * 更新使用者個人資料
+     *
+     * 功能：
+     *   - 更新使用者的個人資料，包含顯示名稱、暱稱、性別、職業、生日、地區、GitHub 連結、頭像
+     *   - 僅更新有提供的欄位（null 值不更新）
+     *
+     * @param userId 使用者 UUID
+     * @param request 更新個人資料請求
+     * @return 更新後的使用者實體
+     * @throws RuntimeException 當找不到使用者時
+     */
+    @Transactional
+    public User updateProfile(UUID userId, UpdateUserProfileRequest request) {
+        // 查詢使用者
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("找不到使用者：" + userId));
+
+        log.info("[UserService] 開始更新使用者 {} 的個人資料", userId);
+
+        // 更新欄位（僅更新有提供的值）
+        if (request.getDisplayName() != null) {
+            user.setDisplayName(request.getDisplayName());
+        }
+        if (request.getNickname() != null) {
+            user.setNickname(request.getNickname());
+        }
+        if (request.getGender() != null) {
+            user.setGender(request.getGender());
+        }
+        if (request.getOccupation() != null) {
+            user.setOccupation(request.getOccupation());
+        }
+        if (request.getBirthday() != null) {
+            user.setBirthday(request.getBirthday());
+        }
+        if (request.getLocation() != null) {
+            user.setLocation(request.getLocation());
+        }
+        if (request.getGithubUrl() != null) {
+            user.setGithubUrl(request.getGithubUrl());
+        }
+        if (request.getAvatarUrl() != null) {
+            user.setAvatarUrl(request.getAvatarUrl());
+        }
+
+        log.info("[UserService] 使用者 {} 的個人資料已更新", userId);
+
+        // 保存更新後的使用者資料
         return userRepository.save(user);
     }
 }

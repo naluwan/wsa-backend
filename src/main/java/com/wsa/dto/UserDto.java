@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -43,6 +44,24 @@ public class UserDto {
     /** 使用者本週經驗值 */
     private Integer weeklyXp;
 
+    /** 使用者暱稱 */
+    private String nickname;
+
+    /** 使用者心理性別 */
+    private String gender;
+
+    /** 使用者職業 */
+    private String occupation;
+
+    /** 使用者生日 */
+    private LocalDate birthday;
+
+    /** 使用者所在地區 */
+    private String location;
+
+    /** 使用者 GitHub 連結 */
+    private String githubUrl;
+
     /**
      * 從 User 實體轉換為 UserDto
      *
@@ -59,6 +78,12 @@ public class UserDto {
                 .level(user.getLevel())
                 .totalXp(user.getTotalXp())
                 .weeklyXp(user.getWeeklyXp())
+                .nickname(user.getNickname())
+                .gender(user.getGender())
+                .occupation(user.getOccupation())
+                .birthday(user.getBirthday())
+                .location(user.getLocation())
+                .githubUrl(user.getGithubUrl())
                 .build();
     }
 }
